@@ -3,6 +3,8 @@ title: "Topographic Change caused by People"
 author: "Matthew Ross"
 date: "9/23/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -171,8 +173,11 @@ plot(dem_diff)
 You may want to check out the command maxValue and minValue
 
 ```{r}
+max_elevation_change <- maxValue(az_raster_after_clip)
+max_elevation_change
 
-#YOUR CODE HERE
+min_elevation_change <- minValue(az_raster_after_clip)
+min_elevation_change
 ```
 
 
@@ -192,10 +197,9 @@ elevation change?
 ### 2a) Buffer the az_mine object by 5 kilometers using the sf::st_buffer command
 
 ```{r}
-
-#Your code here
-
-
+az_mine_5km_buffer <- az_mine %>%
+  sf::st_buffer(dist=5000)
+# mapview(az_mine_5km_buffer)
 ```
 
 
@@ -206,7 +210,8 @@ same projection as the dem_diff raster dataset
 hint: you may want to explore st_crs to help you here
 
 ```{r}
-
+az_mine_5km_reproj <- st_transform(x=az_mine_5km_buffer, crs=4326)
+# mapview(az_mine_5km_reproj)
 ```
 
 
@@ -217,13 +222,19 @@ hint: look at the mask command and try to understand what
 the inverse option does
 
 ```{r}
-#Your code here
+az_5km_unmined <- mask(x=dem_diff, mask=az_mine_5km_reproj, inverse=TRUE)
+# mapview(az_5km_mask)
 ```
 
 
 ### 2d) Use the summary command to look at the summary of
 differences between these two DEMs in areas where there has
 been no mining
+
+```{r}
+summary(az_5km_unmined)
+summary(dem_diff)
+```
 
 
 ## 3) What does the shape of the "error" distribution look like
@@ -239,7 +250,10 @@ make a plot of the two dems.
 USGS az_mine dataset
 
 ```{r}
+az_mine_wsg84 <- st_transform(az_mine, 4326)
 
+az_mined_dem <- mask(dem_diff, az_mine_wsg84)
+mapview(az_mined_dem)
 ```
 
 
@@ -248,8 +262,8 @@ values from both the unmined and mined regions of your rasters.
 Label these vectors as `unmined_dem` and `mined_dem`. 
 
 ```{r}
-
-
+unmined_dem <- getValues(az_5km_unmined)
+mined_dem <- getValues(az_mined_dem)
 
 ```
 
@@ -264,7 +278,8 @@ unmined_type <- rep('unmined',length(unmined_dem))
 mined_type <- rep('mined',length(mined_dem))
 mined_table <- tibble(dem_values = c(unmined_dem,mined_dem),
                       type = c(unmined_type,mined_type)) 
-                      
-                    
+
+ggplot(mined_table, aes(dem_values, fill=type, color=type)) +
+  geom_density()
 ```
 
